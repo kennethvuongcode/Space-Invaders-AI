@@ -1,0 +1,108 @@
+import pygame, sys, random
+from game_AI_obstacles import SpaceInvadersGameAI
+
+SCREEN_WIDTH = 750
+SCREEN_HEIGHT = 700
+OFFSET = 50
+    
+GREY = (29,29,27)
+YELLOW = (100,253,134)
+
+TICK =  30 #120 standard
+
+def draw(screen, game, clock, target):
+ #Drawing         
+
+
+    font = pygame.font.Font("Fonts/monogram.ttf", 40)
+    level = "LEVEL " + str(game.level).zfill(3)
+    level_surface = font.render(level, False, YELLOW)
+    game_over_surface = font.render("GAME OVER", False, YELLOW)
+    score_text_surface = font.render("SCORE", False, YELLOW)
+    highscore_text_surface = font.render("HIGHSCORE", False, YELLOW)    
+    
+    screen.fill(GREY)                       #background
+    pygame.draw.rect(screen, YELLOW, (10,10, 780,780), 2, 0, 60, 60, 60, 60) 
+    pygame.draw.line(screen, YELLOW, (25,730), (775,730), 3)
+    
+    if game.run:
+        screen.blit(level_surface, (570, 740, 50, 50))
+    else:
+        screen.blit(game_over_surface, (570, 740, 50, 50))
+
+        
+    x = 50
+    for life in range(game.lives):
+        screen.blit(game.spaceship_group.sprite.image,(x,740))
+        x += 50
+        
+    screen.blit(score_text_surface,(50,15,50,50))
+    formatted_score = str(game.score).zfill(8)
+    score_surface = font.render(formatted_score,False,YELLOW)
+    screen.blit(score_surface,(50,40,50,50))
+    screen.blit(highscore_text_surface, (550, 15, 50, 50))
+    formatted_highscore = str(game.highscore).zfill(8)
+    highscore_surface = font.render(formatted_highscore, False, YELLOW)
+    screen.blit(highscore_surface,(550,40,50,50))
+
+    pygame.draw.rect(screen, (255,0,0), (target[0]-25,target[1]-25, 50,50))         
+    
+    game.spaceship_group.draw(screen)
+    game.spaceship_group.sprite.laser_group.draw(screen)
+    for obstacle in game.obstacles:
+        obstacle.blocks_group.draw(screen)
+    game.alien_group.draw(screen)
+    game.alien_lasers_group.draw(screen)
+    game.mystery_ship_group.draw(screen)
+    
+    pygame.display.update()
+    clock.tick(TICK)                          #While loop will run 60 times a second, tick is a wait of 1/60th of a second
+    
+
+def train():
+    screen = pygame.display.set_mode((SCREEN_WIDTH + OFFSET, SCREEN_HEIGHT + 2*OFFSET))
+    pygame.display.set_caption("Space Invaders AI")
+
+    clock = pygame.time.Clock()
+    game = SpaceInvadersGameAI(SCREEN_WIDTH,SCREEN_HEIGHT, OFFSET, TICK)
+    alien_counter = 0
+    alien_timer = 30
+    mystery_counter = 0
+    mystery_timer = 1000
+    while True:
+        #Checking for events
+        for event in pygame.event.get():        #While loop checks for events thrown by pygame, if exit button pressed then quit the game
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_SPACE] and game.run == False:
+                game.reset() 
+            
+        #Updating
+        alien_counter += 1
+        mystery_counter += 1
+
+        if alien_counter >= alien_timer and game.run:  
+                game.alien_shoot_laser()
+                alien_counter = 0
+        if mystery_counter >= mystery_timer and game.run:
+            game.create_mystery_ship()
+            mystery_counter = random.randint(0,mystery_timer/4) #change to set mystery spawn rate 
+            
+        if game.run:
+            game.play_step()
+            target =  game.target_depth_first() 
+            reward = game.reward
+            game.reward = 0
+            print(reward)
+
+        draw(screen,game,clock, target)
+        
+        # current_fps = clock.get_fps()
+        # print(f"Current FPS: {current_fps:.2f}")
+
+
+if __name__ == '__main__':
+    train()
